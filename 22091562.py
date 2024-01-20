@@ -37,6 +37,8 @@ def read_data(file_paths, selected_countries, year):
     """
 
     dfs = []
+    # Dictionary to store transposed DataFrames
+    dataframes_dict_transpose = {}
     
     # Columns to exclude
     exclude_columns = ['Country Code', 'Indicator Name', 'Indicator Code']
@@ -72,7 +74,22 @@ def read_data(file_paths, selected_countries, year):
         df = df.dropna(subset = ['2012', '2022'])
         # Drop rows with the specified indices
         df = df.drop(indices_to_drop)
+
         df = df[[str(year)]]
+        # Calculate the mean of each row
+        #df['mean'] = df.mean(axis=0)
+        
+        # Fill null values in each column with the mean of that row
+        df = df.apply(lambda col: col.fillna(col.mean()), axis=0)
+        
+        # Transpose the DataFrame
+        df_trans = df.transpose()
+        
+        #clean the data
+        df_trans.dropna(axis=0, how="all", inplace=True)
+        
+        # Reset index to make years a column
+        df_trans.reset_index(inplace=True)
         
         df.columns = [file_name]  # Rename the column with file name
         dfs.append(df)
@@ -82,7 +99,8 @@ def read_data(file_paths, selected_countries, year):
     for i, df in enumerate(dfs[1:], start = 1):
         merged_df = pd.merge(merged_df, df, left_index = True, right_index = True, suffixes = ('', f'_file{i}'))
     
-    return merged_df
+    dataframes_dict_transpose[file_name] = df_trans
+    return merged_df, dataframes_dict_transpose
 
 def read_data_for_fit(data_sets, selected_country, start_year, end_year):
     
@@ -130,15 +148,9 @@ def read_data_for_fit(data_sets, selected_country, start_year, end_year):
         column_name = file_name.replace('_', ' ')
         data_new = {'Year': df_new.index, column_name: df_new.values.flatten()}
         df_fit = pd.DataFrame(data_new)
-        """
-        # Create a new DataFrame with 'Year' and file name columns
-        df_result = pd.DataFrame({'Year': df.index})
-        #print(df_result)
-        column_name = file_name.replace('_', ' ')
-        #df_result[column_name] = df.iloc[:, 0].values
-        """
         
         df_fit = df_fit.reset_index()
+        print(df_fit)
         #print(df_result["Year"])
         # Store the new DataFrame in dictionaries
         dataframes_dict[file_name] = df_fit
@@ -330,9 +342,10 @@ if __name__ == "__main__":
     end_year = 2022
 
     #dataset of 2012
-    df_12 = read_data(file_paths, selected_countries, year_2012)
+    df_12, dataframes_dict_transpose_12 = read_data(file_paths, selected_countries, year_2012)
+    #print(dataframes_dict_transpose_12)
     #dataset of 2022
-    df_22 = read_data(file_paths, selected_countries, year_2022)
+    df_22,  dataframes_dict_transpose_12 = read_data(file_paths, selected_countries, year_2022)
     #dataset fro 2012 to 2022
     country_india = "India"
     data_sets = ['inflation.csv', 'GDP Growth.csv',"Population.csv"]
