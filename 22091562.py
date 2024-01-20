@@ -32,7 +32,7 @@ def read_data(file_paths, selected_countries, year):
     - end_year (int): End year for data extraction.
 
     Returns:
-    - dataframes_dict (dict): Dictionary of DataFrames with keys as file names.
+    - merged_df: DataFrame.
     - dataframes_dict_transpose (dict): Dictionary of transposed DataFrames.
     """
 
@@ -102,6 +102,7 @@ def read_data(file_paths, selected_countries, year):
     dataframes_dict_transpose[file_name] = df_trans
     return merged_df, dataframes_dict_transpose
 
+
 def read_data_for_fit(data_sets, selected_country, start_year, end_year):
     
     """
@@ -115,7 +116,6 @@ def read_data_for_fit(data_sets, selected_country, start_year, end_year):
 
     Returns:
     - dataframes_dict (dict): Dictionary of DataFrames with keys as file names.
-    - dataframes_dict_transpose (dict): Dictionary of transposed DataFrames.
     """
 
     # Dictionary to store original DataFrames
@@ -162,6 +162,13 @@ def read_data_for_fit(data_sets, selected_country, start_year, end_year):
 
 
 def merg_data(dataframes_dict, indicator_inflation):
+    
+    
+    """ merge multiple files in one dataset 
+        giving indicators name as column names
+    """
+    
+    
     result_df = dataframes_dict[indicator_inflation]
     suffix_count = 1
     for key, df1 in dataframes_dict.items():
@@ -193,6 +200,12 @@ def merg_data(dataframes_dict, indicator_inflation):
 
 # Create and display a correlation heatmap
 def create_correlation_heatmap(data, year):
+    
+    """ Creating Correlation map 
+     data: required data 
+     year: concern year
+     """
+     
     plt.figure(figsize = (10, 8))
     correlation_matrix = data.corr()
     sns.heatmap(correlation_matrix, annot = True, cmap = 'coolwarm', fmt = ".2f")
@@ -206,6 +219,11 @@ def create_correlation_heatmap(data, year):
     
 # Create and display a correlation heatmap
 def create_scatter_matrix(data, year):
+    
+    """
+    create scatter matrix to analyse weak and strong relation between indicators
+    """
+    
     # scatter plot
     pd.plotting.scatter_matrix(data, figsize = (9.0, 9.0))
     plt.tight_layout() # helps to avoid overlap of labels
@@ -218,6 +236,11 @@ def create_scatter_matrix(data, year):
     
 # Perform K-Means clustering
 def perform_clustering(data, cluster_countries, year):
+    
+    """
+    create country clusters for two indicators depend on years
+    """
+    
     #print(cluster_countries[1])
     df_fit = data[cluster_countries].copy()
     df_fit, df_min, df_max = ct.scaler(df_fit)
@@ -244,20 +267,25 @@ def perform_clustering(data, cluster_countries, year):
     cen = kmeans.cluster_centers_
     
     # Define cluster labels
-    cluster_labels = [f'Cluster {i+1}' for i in range(nc)]
+    #cluster_labels = [f'Cluster {i+1}' for i in range(nc)]
 
     # Plotting
     plt.figure(figsize = (6.0, 6.0))
-    plt.scatter(df_fit[cluster_countries[0]], df_fit[cluster_countries[1]], c = labels, cmap = "tab10")
-    plt.scatter(cen[:, 0], cen[:, 1], c = "k", marker = "d", s = 80)
+    #plt.scatter(df_fit[cluster_countries[0]], df_fit[cluster_countries[1]], c = labels, cmap = "tab10")
+    #plt.scatter(cen[:, 0], cen[:, 1], c = "k", marker = "d", s = 80)
+    for i in range(nc):
+        plt.scatter(df_fit[labels == i][cluster_countries[0]], df_fit[labels == i][cluster_countries[1]], label=f'Cluster {i+1}')
+    plt.scatter(cen[:, 0], cen[:, 1], c="black", marker="X", s=100, label='Centers')
 
     plt.xlabel(cluster_countries[0])
     plt.ylabel(cluster_countries[1])
+    plt.legend()
     plt.title(f"country clusters based on Inflation & GDP Growth {year}")
     if(year == 2012):
         plt.savefig(f"cluster_2012.png", bbox_inches = 'tight', dpi = 300)
     else:
         plt.savefig(f"cluster_2022.png", bbox_inches = 'tight', dpi = 300)
+    
     plt.show()
 
     # Display data for a specific cluster
@@ -269,6 +297,7 @@ def perform_clustering(data, cluster_countries, year):
   
     
 def exp_growth(t, scale, growth):
+    
     """ Computes exponential function with scale and growth as free parameters
     """
     #f = scale * np.exp(growth * t)
@@ -277,6 +306,9 @@ def exp_growth(t, scale, growth):
 
 
 def create_data_fit_graph(df_fitted, indicator, country):
+    
+    """Create line graph with fitting data towards prediction for 10 years
+    """
 
     initial_guess = [1.0, 0.02]
     popt, pcovar = opt.curve_fit(exp_growth, df_fitted["Year"], df_fitted[indicator], p0 = initial_guess, maxfev = 10000)
